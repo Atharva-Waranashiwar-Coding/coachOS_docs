@@ -1,6 +1,6 @@
-# CoachOS
+# CoachOS Docs
 
-CoachOS is a coaching platform for managing athletes, video review, AI-assisted feedback, drill assignments, and progress tracking.
+Project documentation for CoachOS, a coaching platform for managing athletes, video review, AI-assisted feedback, drill assignments, and progress tracking.
 
 ## MVP Goal
 
@@ -14,6 +14,7 @@ Build a working coach dashboard where a coach can sign in, manage athletes, uplo
 - AI review service: `../coachos-ai-review-service`
 - Frontend: `../coachos-frontend`
 - Infrastructure: `../coachos-infra`
+- Documentation: `../coachos-docs`
 
 ## Documentation Index
 
@@ -35,7 +36,14 @@ Build a working coach dashboard where a coach can sign in, manage athletes, uplo
 
 ## How To Use These Docs
 
-Use `prd.md` to understand product scope, `roadmap.md` to decide build order, and repository docs to guide implementation inside each service. Update `decisions.md` whenever a technical direction changes.
+Use `prd.md` to understand product scope, `architecture.md` to understand system design, `roadmap.md` to decide build order, and repository docs to guide implementation inside each service. Update `decisions.md` whenever a technical direction changes.
+
+## Maintenance Rules
+
+- Keep docs current with implementation changes.
+- Record technical direction changes in `decisions.md`.
+- Update repository docs when service responsibilities, endpoints, or environment variables change.
+- Prefer diagrams in Mermaid so they render in GitHub and stay editable.
 
 ## Current Build Stage
 
