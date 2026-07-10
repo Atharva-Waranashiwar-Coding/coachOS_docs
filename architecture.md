@@ -47,10 +47,10 @@ PostgreSQL is the primary database. Each service should own its tables and migra
 
 1. Coach selects an uploaded video.
 2. Frontend requests AI review generation.
-3. AI review service fetches video metadata and contextual athlete data.
-4. AI review service calls the AI provider.
-5. Generated observations are stored as draft review content.
-6. Coach edits, approves, or rejects the review.
+3. AI review service validates ownership with Athlete and Media APIs and stores a sanitized context snapshot with a review job.
+4. A dedicated worker sends only structured textual context and metadata to the AI provider; it never sends raw video bytes or storage URLs.
+5. Generated observations are validated and stored as a coach-only draft; provider failure retries with bounded backoff.
+6. Coach edits, approves, rejects, retries, or cancels the review. Approval is the athlete-visible timeline transition.
 7. Approved feedback becomes visible in athlete-facing workflows.
 
 ## Deployment Overview

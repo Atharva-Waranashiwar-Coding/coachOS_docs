@@ -13,6 +13,9 @@ CoachOS uses PostgreSQL because the domain is relational: coaches own athletes, 
 - `practice_sessions`
 - `videos`
 - `ai_reviews`
+- `review_results`
+- `review_revisions`
+- `review_generation_jobs`
 - `ai_observations`
 - `coach_reviews`
 - `drills`
@@ -27,7 +30,10 @@ CoachOS uses PostgreSQL because the domain is relational: coaches own athletes, 
 - `coach_athletes`: relationship between coaches and athletes
 - `practice_sessions`: session date, type, notes, owner
 - `videos`: storage key, upload status, metadata, linked session
-- `ai_reviews`: generated summary and status
+- `ai_reviews`: request inputs, safe context snapshot, provider metadata, and lifecycle status
+- `review_results`: structured generated coaching draft
+- `review_revisions`: append-only coach corrections
+- `review_generation_jobs`: retryable asynchronous review work
 - `ai_observations`: structured strengths, issues, and recommendations
 - `coach_reviews`: coach edits, approvals, and final feedback
 - `drills`: reusable drill definitions

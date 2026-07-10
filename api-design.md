@@ -91,11 +91,13 @@ Responses:
 
 ### AI Review Service
 
-- `POST /reviews`
-- `GET /reviews/{review_id}`
-- `PATCH /reviews/{review_id}`
-- `POST /reviews/{review_id}/approve`
-- `POST /reviews/{review_id}/reject`
+- `POST /api/v1/reviews` returns `202`; callers should supply `Idempotency-Key`.
+- `GET /api/v1/reviews`, `/athletes/{athlete_id}/reviews`, and `/videos/{video_id}/reviews` support review queues.
+- `GET /api/v1/reviews/{review_id}` and `/status` return the draft and asynchronous status.
+- `PATCH /api/v1/reviews/{review_id}/draft` appends a coach revision.
+- `POST /api/v1/reviews/{review_id}/approve`, `/reject`, `/retry`, and `/cancel` enforce lifecycle transitions.
+
+Review requests include athlete, session, uploaded-video IDs, a review type, and bounded textual context. Structured results contain summary, observations, strengths, improvement areas, recommended drills, and limitations. API responses never include raw provider output, credentials, passwords, or storage URLs.
 
 ## Request/Response Examples
 

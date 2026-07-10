@@ -1,65 +1,62 @@
 # AI Review Service
 
-## Service Responsibility
+## Responsibility
 
-The AI review service owns AI-generated summaries, observations, recommendations, and the coach review approval workflow.
+The AI Review Service owns asynchronous coaching review requests, sanitized context snapshots, structured provider output, coach revisions, lifecycle state, and timeline outbox events. Athlete profile, practice session, and video records remain owned by their source services.
 
-## AI Review Generation Flow
+## Generation Flow
 
-1. Coach requests review for a video.
-2. Service loads video metadata and athlete context.
-3. Service builds prompt with structured instructions.
-4. AI provider returns structured review output.
-5. Service stores draft review content.
-6. Coach edits, approves, or rejects the review.
+1. A coach submits an uploaded video, athlete, and practice session with optional notes, focus areas, transcript, and frame observations.
+2. The API validates ownership through Athlete and Media APIs with the coach JWT, captures safe metadata, then writes `ai_reviews`, `review_generation_jobs`, and `ai_review_requested` in one transaction.
+3. `review_worker` claims the job, passes only text and metadata to the configured provider, validates the provider response against the structured Pydantic schema, and persists `review_results`.
+4. The review becomes `generated`; coaches can revise, approve, reject, retry a terminal failure, or cancel pending work.
+5. `outbox_publisher` delivers requested/generated/failed and coach action events to Athlete Service's internal timeline endpoint. Only approval emits athlete-visible feedback.
 
-## Prompt Strategy
+Raw video, storage URLs, provider prompts, raw provider output, and credentials are not sent to the model or included in timeline payloads. The provider prompt bans claims of raw-video viewing and medical advice.
 
-Prompts should ask for concise, coach-friendly output with strengths, improvement areas, recommended drills, and safety-aware language.
+## States
 
-## Input/Output Format
-
-Inputs include video ID, athlete context, session notes, coach notes, and optional transcript. Outputs include summary, observations, strengths, improvement areas, and drill recommendations.
-
-## Coach Review Statuses
-
-- `draft`
-- `pending_coach_review`
-- `approved`
-- `rejected`
-- `published`
+- `pending`, `processing`, `generated`, `failed`, `cancelled`, `approved`, `rejected`
+- Jobs use `pending`, `processing`, `completed`, `failed`, `cancelled` and bounded exponential retries.
 
 ## Endpoints
 
-- `POST /reviews`
-- `GET /reviews/{review_id}`
-- `PATCH /reviews/{review_id}`
-- `POST /reviews/{review_id}/approve`
-- `POST /reviews/{review_id}/reject`
-- `POST /reviews/{review_id}/publish`
+- `POST /api/v1/reviews` with `Idempotency-Key`
+- `GET /api/v1/reviews`, `/athletes/{athlete_id}/reviews`, `/videos/{video_id}/reviews`
+- `GET /api/v1/reviews/{id}`, `/api/v1/reviews/{id}/status`
+- `PATCH /api/v1/reviews/{id}/draft`
+- `POST /api/v1/reviews/{id}/approve`, `/reject`, `/retry`, `/cancel`
 
 ## Tables Owned
 
-- `ai_reviews`
-- `ai_observations`
-- `coach_reviews`
-- `drill_recommendations`
+- `ai_reviews`: request inputs, safe context snapshot, provider metadata, and lifecycle status
+- `review_results`: structured generated coaching draft
+- `review_revisions`: append-only coach corrections
+- `review_generation_jobs`: retryable asynchronous review work
+- `outbox_events`: reliable delivery to Athlete Service
+
+## Environment and Local Run
+
+Use `DATABASE_URL`, `JWT_SECRET_KEY`, `ATHLETE_SERVICE_URL`, `MEDIA_SERVICE_URL`, internal timeline credentials, `OPENAI_API_KEY`, and `REVIEW_JOB_*` settings from `.env.example`.
+
+```bash
+alembic upgrade head
+uvicorn app.main:app --reload --port 8004
+python -m app.workers.review_worker
+python -m app.workers.outbox_publisher
+```
 
 ## Testing Plan
 
-- Review generation request validation
-- Prompt construction
-- AI provider response parsing
-- Status transitions
-- Coach edit and approval flow
+- Request and context ownership validation
+- Idempotency and lifecycle transitions
+- Structured provider parsing and prompt safety
+- Job retries, cancellation, and failure event creation
+- Outbox visibility and idempotent timeline delivery
 
 ## Future Improvements
 
-- Background review jobs
-- Model comparison
-- Confidence scoring
-- Custom sport-specific prompts
-- Computer vision integration
-# Timeline Outbox
-
-The repository provides outbox persistence, a publisher, and safe event factories. Future review domain transactions must add requested/generated/failed and coach edited/approved/rejected rows before commit. Raw prompts and model output are forbidden from timeline metadata; approval is the transition to athlete-visible feedback.
+- Queue-backed workers and distributed locks
+- Provider routing, cost accounting, and tracing
+- Provider-neutral vision pipeline with explicit consent and media policy
+- Coach revision editor and drill-assignment handoff

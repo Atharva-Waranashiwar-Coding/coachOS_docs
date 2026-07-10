@@ -47,4 +47,4 @@ Use `prd.md` to understand product scope, `architecture.md` to understand system
 
 ## Current Build Stage
 
-Stage 0: Project setup. Repository skeletons, documentation, service folders, frontend folders, and infrastructure folders are being prepared.
+Stage 6: AI review generation is implemented as an asynchronous, coach-controlled workflow with persisted jobs, structured drafts, revisions, and timeline outbox delivery.
