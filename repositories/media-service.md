@@ -58,3 +58,6 @@ Practice sessions group videos and notes by athlete, coach, date, and session ty
 - Video annotations
 - Transcript extraction
 - Background upload processing
+# Timeline Outbox
+
+Practice lifecycle, first verified upload completion, and video deletion insert timeline payloads in the same transaction as domain state. `python -m app.workers.outbox_publisher` delivers them. `python -m app.workers.outbox_admin inspect` reports queue state and `retry-failed` safely requeues failed rows.

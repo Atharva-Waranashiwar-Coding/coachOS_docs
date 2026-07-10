@@ -54,3 +54,6 @@ The athlete service owns timeline events or provides the timeline aggregation en
 - Multi-coach support
 - Team/group support
 - Progress tags and searchable notes
+# Timeline Ingestion
+
+Athlete Service authenticates internal callers separately from user JWTs, enforces per-service event allowlists, validates athlete existence, detects idempotency conflicts, and serves filtered coach timeline queries. Local profile and goal events use the same canonical model without HTTP or an outbox.

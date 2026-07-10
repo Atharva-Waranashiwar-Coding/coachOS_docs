@@ -27,3 +27,10 @@ Videos should be stored in cloud object storage. PostgreSQL stores metadata only
 ## Decision 7: AI API First, Custom ML Later
 
 The MVP uses an external AI API for review generation. Custom ML can be explored after enough domain-specific data and product usage exist.
+# Timeline Decisions
+
+- Athlete Service remains timeline source of truth.
+- MVP transport is internal HTTP plus transactional outboxes, with no message broker.
+- Producers generate stable idempotency UUIDs once at outbox creation.
+- User chronology uses domain `occurred_at`, not ingestion time.
+- `coach_only` and `athlete_visible` are explicit data policy, not frontend-only decoration.

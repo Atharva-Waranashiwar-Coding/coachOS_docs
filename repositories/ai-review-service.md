@@ -60,3 +60,6 @@ Inputs include video ID, athlete context, session notes, coach notes, and option
 - Confidence scoring
 - Custom sport-specific prompts
 - Computer vision integration
+# Timeline Outbox
+
+The repository provides outbox persistence, a publisher, and safe event factories. Future review domain transactions must add requested/generated/failed and coach edited/approved/rejected rows before commit. Raw prompts and model output are forbidden from timeline metadata; approval is the transition to athlete-visible feedback.

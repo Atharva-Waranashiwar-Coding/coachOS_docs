@@ -122,3 +122,6 @@ Login response:
   }
 }
 ```
+# Internal Timeline Ingestion
+
+`POST /internal/v1/athletes/{athlete_id}/timeline-events` requires `X-Service-Name` and `X-Service-Token`. The body carries a producer UUID `event_id`, category, visibility, actor, occurrence time, source identity, safe metadata, and `schema_version: 1`. First ingestion returns `201`; an identical retry returns `200`; reuse with changed content returns `409`. Public coach queries support category, type, source, visibility, and date filters.

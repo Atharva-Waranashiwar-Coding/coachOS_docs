@@ -65,3 +65,6 @@ Local development starts with Docker Compose. Production can use containerized s
 - Redis for queues and caching
 - Centralized logging and tracing
 - Dedicated API gateway
+# Unified Timeline Delivery
+
+Athlete Service owns the canonical append-only timeline. Producer services commit domain state and an outbox row atomically, then separate workers deliver events over authenticated internal HTTP. Delivery is eventually consistent: domain operations never roll back because Athlete Service is unavailable. Stable producer event IDs make retries idempotent; no service writes another service's database.

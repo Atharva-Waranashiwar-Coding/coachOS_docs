@@ -77,3 +77,6 @@ Each service owns its Alembic migrations. Migrations should be forward-only duri
 ## Future Scaling Notes
 
 Start with one PostgreSQL instance. Split into separate databases per service when operational complexity is justified. Use object storage for video files and keep only metadata in PostgreSQL.
+# Timeline And Outbox
+
+`timeline_events` stores canonical events ordered by `occurred_at`, `created_at`, and ID. A partial unique index on non-null `external_event_id` enforces producer idempotency. Category, visibility, source, entity, and athlete/time indexes support coach queries. Producer `outbox_events` tables index status/availability, creation time, and aggregate identity and retain bounded retry state without cross-service foreign keys.

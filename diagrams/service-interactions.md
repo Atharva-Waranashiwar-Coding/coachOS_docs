@@ -84,3 +84,37 @@ sequenceDiagram
   Athlete->>DB: Insert assignment and timeline event
   Athlete-->>UI: Drill assignment
 ```
+# Timeline Delivery
+
+```mermaid
+sequenceDiagram
+  participant M as Media Service
+  participant O as Media Outbox
+  participant W as Outbox Worker
+  participant A as Athlete Service
+  M->>O: Commit video_uploaded with upload
+  W->>O: Claim SKIP LOCKED
+  W->>A: POST internal timeline event
+  A-->>W: 201 created or 200 duplicate
+  W->>O: Mark published
+```
+
+```mermaid
+sequenceDiagram
+  participant AI as AI Review Service
+  participant O as AI Outbox
+  participant A as Athlete Service
+  AI->>O: Commit coach_review_approved
+  O->>A: Publish athlete-visible event
+  A-->>O: Idempotent success
+```
+
+```mermaid
+sequenceDiagram
+  participant W as Worker
+  participant A as Athlete Service
+  participant O as Outbox
+  W-xA: Timeout or 5xx
+  W->>O: Increment attempt and schedule backoff
+  W->>A: Retry same event_id
+```
