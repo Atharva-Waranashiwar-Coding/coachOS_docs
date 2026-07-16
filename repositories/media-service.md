@@ -67,3 +67,7 @@ Practice lifecycle, first verified upload completion, and video deletion insert 
 `GET /api/v1/insights/athletes/{athlete_id}/activity` serves a coach-authorized athlete summary. `POST /api/v1/insights/athletes/activity-summary` serves bounded internal Athlete Service batches.
 
 For current and comparison half-open UTC ranges, the service groups practice sessions created, sessions completed, uploaded non-deleted videos, and latest session activity by athlete. Responses never include storage keys, object-store configuration, signed URLs, bucket names, or deleted-video details. `INSIGHT_MAX_BATCH_ATHLETES` bounds batch size.
+
+## Production Operations
+
+The API runs migrations automatically and exposes liveness, database/object-storage readiness, and Prometheus metrics. API and worker logs are structured JSON with request IDs. Media PostgreSQL is backed up independently; MinIO video objects require a separate bucket backup or replication policy.

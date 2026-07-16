@@ -52,6 +52,11 @@ Athlete accounts are provisioned only through authenticated internal calls from 
 - `INTERNAL_SERVICE_NAME`
 - `INTERNAL_SERVICE_TOKEN`
 - `UPSTREAM_TIMEOUT_SECONDS`
+- `CORS_ORIGINS`
+- `LOG_LEVEL`
+- `METRICS_ENABLED`
+- `REQUEST_ID_HEADER`
+- `RUN_MIGRATIONS`
 
 ## Local Run Steps
 
@@ -59,6 +64,8 @@ Athlete accounts are provisioned only through authenticated internal calls from 
 pip install -r requirements.txt
 uvicorn main:app --reload
 ```
+
+The container entrypoint runs `alembic upgrade head`. Runtime endpoints are `/health/live`, `/health/ready`, and `/metrics`; JSON logs include `X-Request-ID`.
 
 ## Testing Plan
 

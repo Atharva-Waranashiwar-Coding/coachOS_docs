@@ -25,7 +25,7 @@ The athlete dashboard is a frontend composition over dedicated athlete-safe APIs
 
 ## Database Strategy
 
-PostgreSQL is the primary database. Each service should own its tables and migrations. In early local development, one PostgreSQL instance can host separate databases or schemas per service.
+PostgreSQL is the primary database. Auth, Athlete, Media, and AI Review each own a separate PostgreSQL database, credential, volume, schema, and Alembic history in both development and production. A service may use only its own database; cross-service data is accessed through authenticated HTTP contracts.
 
 ## Authentication And Athlete Invitation Flow
 
@@ -76,7 +76,11 @@ Athletes can read only their own assignments and can start, increase progress, o
 
 ## Deployment Overview
 
-Local development starts with Docker Compose. Production can use containerized services behind an API gateway or ingress, managed PostgreSQL, object storage, and a hosted frontend.
+CoachOS deploys to a generic Docker host with Docker Compose. Nginx terminates HTTPS, applies request-ID propagation and rate limits, serves the frontend, and reverse proxies same-origin API paths. Backend and frontend images are multi-stage, non-root, and health checked. Production application containers use read-only filesystems where possible, dropped Linux capabilities, and `no-new-privileges`.
+
+Each API runs its own idempotent `alembic upgrade head` before Uvicorn starts. Background workers do not run migrations and wait for the relevant API to become healthy. PostgreSQL and MinIO use persistent volumes and private networks.
+
+Prometheus scrapes API, Nginx, frontend Nginx, and PostgreSQL metrics. Grafana is provisioned with Prometheus and Loki. Promtail discovers Docker containers, parses JSON logs, and sends them to Loki. Deployment and database recovery are operated through scripts in `coachos-infra`.
 
 ## Future Architecture Upgrades
 
@@ -84,8 +88,8 @@ Local development starts with Docker Compose. Production can use containerized s
 - Event-driven review generation
 - Background workers for long-running video analysis
 - Measured caching for expensive read paths
-- Centralized logging and tracing
-- Dedicated API gateway
+- Distributed tracing
+- Multi-host failover or managed persistence when availability requirements justify it
 
 # Unified Timeline Delivery
 

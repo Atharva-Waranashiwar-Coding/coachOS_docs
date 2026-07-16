@@ -55,6 +55,30 @@ The athlete dashboard summarizes goals, assignment completion, and approved feed
 ## Decision 14: Athlete Assignment Actions Are Limited
 
 Athletes may start assignments, increase progress, and complete them. They may not cancel assignments. Completion is idempotent, progress cannot decrease, and activity records identify the athlete as actor.
+
+## Decision 15: Docker Compose Production Orchestration
+
+CoachOS uses Docker Compose on a single generic Docker host for the current production stage. Kubernetes, Docker Swarm, and cloud-specific runtimes are excluded. This keeps operations accessible while accepting a single-host availability boundary.
+
+## Decision 16: One PostgreSQL Database Per Service
+
+Auth, Athlete, Media, and AI Review each own an isolated PostgreSQL database and migration history. Sharing a server-level deployment does not permit shared schemas, credentials, foreign keys, or direct queries.
+
+## Decision 17: Automatic Forward Migrations
+
+API entrypoints execute `alembic upgrade head` before accepting traffic. Workers never run migrations. Production schema changes must be backward compatible with the previous application version because Compose reconciliation can briefly create mixed versions.
+
+## Decision 18: Prometheus And Loki Observability
+
+Services emit JSON to stdout with request IDs. Promtail sends container logs to Loki, Prometheus scrapes service and infrastructure metrics, and Grafana queries both. Distributed tracing is deferred until request volume and debugging needs justify another subsystem.
+
+## Decision 19: Nginx Edge And Same-Origin APIs
+
+Nginx is the only public application entrypoint. It terminates TLS, applies per-IP rate limits, forwards request IDs, serves the frontend, and routes root-relative API paths. Backend service ports and databases remain private in production.
+
+## Decision 20: Logical PostgreSQL Backups
+
+The MVP uses one custom-format `pg_dump` and SHA-256 checksum per service database. Dumps are portable and independently restorable but do not provide continuous recovery or include MinIO objects. Operators must export backups off-host and manage object-storage protection separately.
 # Timeline Decisions
 
 - Athlete Service remains timeline source of truth.

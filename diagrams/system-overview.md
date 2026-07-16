@@ -4,6 +4,8 @@
 
 ```mermaid
 flowchart LR
+  User[Coach or Athlete]
+  Edge[Nginx HTTPS Edge]
   Frontend[React Frontend<br/>Coach and Athlete Shells]
   Auth[Auth Service]
   Athlete[Athlete Service]
@@ -13,13 +15,19 @@ flowchart LR
   AthleteDB[(Athlete PostgreSQL)]
   MediaDB[(Media PostgreSQL)]
   AIDB[(AI Review PostgreSQL)]
-  Storage[(Cloud Storage)]
+  Storage[(Private MinIO or S3)]
   Provider[AI Provider]
+  Prometheus[Prometheus]
+  Grafana[Grafana]
+  Promtail[Promtail]
+  Loki[Loki]
 
-  Frontend --> Auth
-  Frontend --> Athlete
-  Frontend --> Media
-  Frontend --> AI
+  User --> Edge
+  Edge --> Frontend
+  Edge --> Auth
+  Edge --> Athlete
+  Edge --> Media
+  Edge --> AI
   Athlete -->|Provision invited identity| Auth
   Auth -->|Activate identity link| Athlete
   AI -->|Resolve athlete identity| Athlete
@@ -30,6 +38,13 @@ flowchart LR
   AI --> AIDB
   Media --> Storage
   AI --> Provider
+  Prometheus --> Auth
+  Prometheus --> Athlete
+  Prometheus --> Media
+  Prometheus --> AI
+  Grafana --> Prometheus
+  Grafana --> Loki
+  Promtail --> Loki
 ```
 
 ## Frontend
@@ -46,8 +61,12 @@ Each service owns its PostgreSQL tables and Alembic migrations. External service
 
 ## Cloud Storage
 
-Stores uploaded videos and generated media artifacts.
+Stores uploaded videos in a private S3-compatible bucket. PostgreSQL backups do not include these objects.
 
 ## AI Provider
 
 External AI API used for MVP review generation.
+
+## Operations
+
+Docker Compose runs the edge, applications, isolated databases, storage, workers, and observability stack on one generic Docker host. Nginx is the only public application entrypoint.

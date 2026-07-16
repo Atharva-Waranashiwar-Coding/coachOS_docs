@@ -114,3 +114,7 @@ Attention rules cover overdue drills, high active-assignment load, limited recen
 `InsightQueries` loads local data in grouped queries. Review and Media clients chunk athlete IDs to `INSIGHT_MAX_BATCH_ATHLETES`, use bounded timeouts, and convert failures into partial responses. The alias configuration is versioned at `app/core/insight_aliases.v1.json`.
 
 Tests cover date boundaries, custom range limits, drill and goal formulas, taxonomy/alias normalization, distinct-review recurrence, and partial upstream behavior. Future work should begin with query timing and explain plans before adding caching or snapshots.
+
+## Production Operations
+
+The non-root API image runs Alembic automatically, exposes `/health/live`, database-backed `/health/ready`, and `/metrics`, and writes request-ID correlated JSON logs to stdout. The central Compose deployment provides its isolated PostgreSQL database, exporter, backup/restore lifecycle, CORS allowlist, and edge rate limiting.

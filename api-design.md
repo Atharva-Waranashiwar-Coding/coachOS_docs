@@ -10,7 +10,7 @@
 
 ## Base URLs
 
-- Auth service: `http://localhost:8001`
+- Auth service: `http://localhost:8000`
 - Athlete service: `http://localhost:8002`
 - Media service: `http://localhost:8003`
 - AI review service: `http://localhost:8004`
@@ -23,6 +23,8 @@ Protected endpoints require:
 ```http
 Authorization: Bearer <jwt>
 ```
+
+Clients may send `X-Request-ID`. The edge and APIs propagate it, or generate a UUID when absent, and return it in the response.
 
 ## Error Response Format
 
@@ -57,7 +59,8 @@ Responses:
 
 ## Endpoint Naming Rules
 
-- Use `/health` for service health checks.
+- Use `/health/live` for process liveness and `/health/ready` for dependency readiness.
+- Expose Prometheus metrics at `/metrics` outside the versioned API namespace.
 - Use `/auth/signup` and `/auth/login` for auth actions.
 - Use `/athletes/{athlete_id}` for athlete resources.
 - Use `/api/v1/athlete/*` for athlete self-service resources resolved from the JWT.
@@ -125,6 +128,16 @@ Coach invitation endpoints require primary-coach access. Athlete self endpoints 
 - `POST /api/v1/insights/athletes/approved-review-summary` accepts a bounded athlete ID batch from authenticated Athlete Service.
 
 Review requests include athlete, session, uploaded-video IDs, a review type, and bounded textual context. Structured results contain summary, observations, strengths, improvement areas, recommended drills, and limitations. API responses never include raw provider output, credentials, passwords, or storage URLs.
+
+## Operational Endpoints
+
+Every FastAPI service exposes:
+
+- `GET /health/live`: no external dependency checks
+- `GET /health/ready`: verifies the owned PostgreSQL database; Media also verifies object storage
+- `GET /metrics`: Prometheus request count, latency, and in-progress metrics
+
+The frontend Nginx exposes `/health/live`, `/health/ready`, and an internal `/nginx_status` endpoint consumed by an exporter. The edge Nginx exposes liveness and an internal status endpoint.
 
 ## Request/Response Examples
 

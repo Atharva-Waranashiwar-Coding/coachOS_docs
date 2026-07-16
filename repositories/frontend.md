@@ -78,6 +78,10 @@ Use consistent forms, tables, status badges, timeline items, upload states, and 
 - Rich video annotation UI
 - Secure athlete video playback after Media Service defines explicit visibility authorization
 
+## Production Delivery
+
+The frontend uses a multi-stage Node 22 build and an unprivileged Nginx runtime on port `8080`. Production API URLs are root-relative edge paths, so browser traffic stays same-origin. The container exposes liveness/readiness endpoints and an internal Nginx status endpoint for Prometheus export. CI runs lint, typecheck, tests, build, and image publication.
+
 ## Coach Review UI
 
 The frontend labels original AI output, active coach draft, and approved snapshot separately. The structured editor supports additions, removals, and keyboard-accessible reordering. Preview hides private coach notes. Approval and rejection require explicit confirmation; stale saves ask the coach to reload instead of overwriting work.

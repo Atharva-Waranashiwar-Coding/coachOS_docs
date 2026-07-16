@@ -89,3 +89,7 @@ The service exposes an approved-review insight endpoint for one athlete and a bo
 Strength and improvement-area schemas support nullable `taxonomy_code`. Insight responses include structured titles, descriptions, priorities, taxonomy codes, visibility, approval timestamps, review type, recommendations, and source session/video IDs. They exclude coach notes, generated and rejected reviews, prompts, provider metadata, token usage, confidence/evidence internals, raw model output, and revision history.
 
 Batch requests require Athlete Service internal authentication and reject lists larger than `INSIGHT_MAX_BATCH_ATHLETES`. Coach-authorized single-athlete reads verify access through Athlete Service.
+
+## Production Operations
+
+The API runs Alembic before accepting traffic; review and outbox workers disable migrations and wait for readiness. The service exposes liveness, database readiness, and Prometheus metrics, and all processes emit JSON logs. AI Review PostgreSQL is isolated and independently backed up through the infra scripts.

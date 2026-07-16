@@ -46,4 +46,4 @@ Implemented: Athlete Service owns on-request coach insight aggregation; AI Revie
 
 ## Stage 11: Deployment
 
-Prepare Docker Compose, CI/CD, production environment variables, database migrations, logging, and monitoring.
+Implemented: multi-stage non-root images, development and production Docker Compose, HTTPS-ready Nginx, automatic Alembic migrations, JSON request logging, health and metrics endpoints, Prometheus/Grafana/Loki/Promtail, PostgreSQL backups, and GitHub Actions deployment.

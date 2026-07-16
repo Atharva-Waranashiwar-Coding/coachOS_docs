@@ -47,4 +47,4 @@ Use `prd.md` to understand product scope, `architecture.md` to understand system
 
 ## Current Build Stage
 
-Stage 10: coach-facing progress insights are implemented with deterministic drill and goal metrics, approved-review normalization, activity summaries, attention flags, date comparisons, partial upstream responses, and coach-wide attention workflows.
+Stage 11: production deployment is implemented with independently built containers, development and production Docker Compose topologies, HTTPS-ready Nginx routing, isolated PostgreSQL databases, automatic migrations, structured logs, Prometheus/Grafana monitoring, Loki/Promtail log aggregation, backup and restore tooling, and GitHub Actions.

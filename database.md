@@ -85,7 +85,9 @@ Each service owns its Alembic migrations. Migrations should be forward-only duri
 
 ## Future Scaling Notes
 
-Start with one PostgreSQL instance. Split into separate databases per service when operational complexity is justified. Use object storage for video files and keep only metadata in PostgreSQL.
+Run one isolated PostgreSQL database per backend service in development and production. The current Docker Compose deployment uses four PostgreSQL containers and persistent volumes so credentials, lifecycle, backups, and migrations remain independent. Use object storage for video files and keep only metadata in Media PostgreSQL.
+
+Logical backups use custom-format `pg_dump` files and SHA-256 sidecars per database. Full-platform recovery should use a coordinated backup set. PostgreSQL dumps do not include MinIO objects.
 
 ## Athlete Account Tables
 
