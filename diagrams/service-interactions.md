@@ -4,13 +4,135 @@
 
 ```mermaid
 sequenceDiagram
-  participant UI as Frontend
+  participant UI as Role-aware Frontend
   participant Auth as Auth Service
   participant DB as PostgreSQL
   UI->>Auth: POST /auth/login
   Auth->>DB: Load user by email
   DB-->>Auth: User record
-  Auth-->>UI: JWT and user profile
+  Auth-->>UI: JWT with user ID, email, and role
+  UI->>Auth: GET /auth/me
+  Auth-->>UI: Authenticated user
+  UI->>UI: Select coach or athlete shell
+```
+
+## Coach Invites Athlete
+
+```mermaid
+sequenceDiagram
+  participant Coach as Coach UI
+  participant Athlete as Athlete Service
+  participant Auth as Auth Service
+  participant ADB as Athlete DB
+  participant UDB as Auth DB
+  Coach->>Athlete: POST /athletes/{id}/invite
+  Athlete->>ADB: Verify primary coach and create invited link
+  Athlete->>Auth: POST /internal/v1/athlete-users
+  Auth->>UDB: Create pending athlete user and hashed token
+  Auth-->>Athlete: Auth user ID and invitation URL
+  Athlete->>ADB: Save external Auth user ID
+  Athlete-->>Coach: Invitation status
+```
+
+## Athlete Accepts Invitation
+
+```mermaid
+sequenceDiagram
+  participant AthleteUI as Athlete Browser
+  participant Auth as Auth Service
+  participant Athlete as Athlete Service
+  participant UDB as Auth DB
+  participant ADB as Athlete DB
+  AthleteUI->>Auth: POST /auth/invitations/accept
+  Auth->>UDB: Verify token hash, expiry, and unused state
+  Auth->>UDB: Hash password and activate user
+  Auth->>Athlete: POST /internal/v1/athlete-user-links/{auth_user_id}/activate
+  Athlete->>ADB: Activate matching identity link
+  Auth-->>AthleteUI: Active athlete user
+```
+
+## Athlete Login And Profile Resolution
+
+```mermaid
+sequenceDiagram
+  participant UI as Athlete UI
+  participant Auth as Auth Service
+  participant Athlete as Athlete Service
+  participant DB as Athlete DB
+  UI->>Auth: POST /auth/login
+  Auth-->>UI: Athlete JWT
+  UI->>Athlete: GET /api/v1/athlete/me with JWT
+  Athlete->>Athlete: Require athlete role
+  Athlete->>DB: Resolve active link by Auth user ID
+  DB-->>Athlete: Athlete profile
+  Athlete-->>UI: Athlete-safe profile
+```
+
+## Athlete Dashboard
+
+```mermaid
+sequenceDiagram
+  participant UI as Athlete UI
+  participant Athlete as Athlete Service
+  participant AI as AI Review Service
+  participant DB as Athlete DB
+  UI->>Athlete: GET /api/v1/athlete/dashboard
+  Athlete->>DB: Profile, goals, drills, progress, timeline
+  Athlete->>AI: GET athlete-visible feedback summary
+  alt AI Review available
+    AI-->>Athlete: Approved feedback summary
+  else AI Review unavailable
+    AI--xAthlete: Timeout or 5xx
+    Athlete->>Athlete: Continue without feedback summary
+  end
+  Athlete-->>UI: Dashboard
+```
+
+## Athlete Reads Approved Feedback
+
+```mermaid
+sequenceDiagram
+  participant UI as Athlete UI
+  participant AI as AI Review Service
+  participant Athlete as Athlete Service
+  participant DB as AI Review DB
+  UI->>AI: GET /api/v1/athlete/reviews
+  AI->>Athlete: Resolve athlete identity with JWT
+  Athlete-->>AI: Current athlete ID
+  AI->>DB: Query approved + athlete_visible + athlete ID
+  DB-->>AI: Immutable snapshots
+  AI-->>UI: Athlete-safe feedback schemas
+```
+
+## Athlete Starts And Completes Drill
+
+```mermaid
+sequenceDiagram
+  participant UI as Athlete UI
+  participant Athlete as Athlete Service
+  participant DB as Athlete DB
+  UI->>Athlete: POST assignment/start
+  Athlete->>DB: Verify resolved athlete owns assignment
+  Athlete->>DB: Save in_progress and athlete activity
+  UI->>Athlete: POST assignment/progress
+  Athlete->>DB: Save monotonic progress and safe activity
+  UI->>Athlete: POST assignment/complete
+  Athlete->>DB: Set completed, progress=100, activity, timeline
+  Athlete-->>UI: Completed assignment
+```
+
+## Athlete Timeline
+
+```mermaid
+sequenceDiagram
+  participant UI as Athlete UI
+  participant Athlete as Athlete Service
+  participant DB as Athlete DB
+  UI->>Athlete: GET /api/v1/athlete/timeline
+  Athlete->>DB: Resolve active identity link
+  Athlete->>DB: Query athlete ID and athlete_visible only
+  DB-->>Athlete: Safe chronological events
+  Athlete-->>UI: Paginated timeline
 ```
 
 ## Revision And Approval Flow
@@ -100,6 +222,81 @@ sequenceDiagram
   UI->>Athlete: POST /athletes/{id}/drill-assignments
   Athlete->>DB: Insert assignment and timeline event
   Athlete-->>UI: Drill assignment
+```
+
+## Assign From Library
+
+```mermaid
+sequenceDiagram
+  participant Coach
+  participant UI as Frontend
+  participant Athlete as Athlete Service
+  participant DB as Athlete DB
+  Coach->>UI: Select library drill and assignment options
+  UI->>Athlete: POST drill-assignments mode=library
+  Athlete->>DB: Verify drill and primary coach
+  Athlete->>DB: Insert snapshot, activity, and drill_assigned
+  Athlete-->>UI: 201 assignment
+```
+
+## Assign Approved Recommendation
+
+```mermaid
+sequenceDiagram
+  participant Coach
+  participant UI as Frontend
+  participant Athlete as Athlete Service
+  participant AI as AI Review Service
+  participant DB as Athlete DB
+  Coach->>UI: Select one approved recommendation
+  UI->>Athlete: POST mode=review with review ID and index
+  Athlete->>AI: GET approved review with coach JWT
+  AI-->>Athlete: Immutable approved snapshot
+  Athlete->>Athlete: Verify athlete, approval, and index
+  Athlete->>DB: Insert assignment snapshot, activity, timeline
+  Athlete-->>UI: 201 assignment
+```
+
+## Save Recommendation To Library
+
+```mermaid
+sequenceDiagram
+  participant UI as Frontend
+  participant Athlete as Athlete Service
+  participant AI as AI Review Service
+  participant DB as Athlete DB
+  UI->>Athlete: POST mode=review save_to_library=true
+  Athlete->>AI: Fetch approved recommendation
+  AI-->>Athlete: Trusted recommendation
+  Athlete->>DB: Transaction: insert private drill
+  Athlete->>DB: Insert assignment, activity, timeline
+  Athlete-->>UI: Assignment with drill_id
+```
+
+## Complete Assignment
+
+```mermaid
+sequenceDiagram
+  participant UI as Frontend
+  participant Athlete as Athlete Service
+  participant DB as Athlete DB
+  UI->>Athlete: POST assignment/complete
+  Athlete->>DB: Set completed and progress=100
+  Athlete->>DB: Insert completed activity and safe timeline event
+  Athlete-->>UI: Completed assignment
+```
+
+## Cancel Assignment
+
+```mermaid
+sequenceDiagram
+  participant UI as Frontend
+  participant Athlete as Athlete Service
+  participant DB as Athlete DB
+  UI->>Athlete: POST assignment/cancel with private reason
+  Athlete->>DB: Set cancelled
+  Athlete->>DB: Store private activity and coach-only timeline event
+  Athlete-->>UI: Cancelled assignment
 ```
 # Timeline Delivery
 

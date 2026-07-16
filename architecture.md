@@ -2,7 +2,7 @@
 
 ## System Overview
 
-CoachOS uses a React frontend with separate FastAPI backend services for authentication, athlete management, media handling, and AI review. Services communicate over HTTP APIs and persist data in PostgreSQL.
+CoachOS uses one React frontend with role-aware coach and athlete application shells. Separate FastAPI services own authentication, athlete management, media handling, and AI review. Services communicate over authenticated HTTP APIs and persist their own data in PostgreSQL.
 
 ## Why Microservices
 
@@ -10,8 +10,8 @@ The project is split by product responsibility so each domain can evolve indepen
 
 ## Service List
 
-- Auth service: coach signup, login, roles, JWT issuance
-- Athlete service: athlete profiles, relationships, goals, timeline
+- Auth service: coach signup, invite-only athlete accounts, login, roles, JWT issuance
+- Athlete service: athlete profiles, auth identity links, relationships, goals, drills, and timeline
 - Media service: video upload flow, storage metadata, practice sessions
 - AI review service: AI summary generation, observations, coach review workflow
 - Frontend: coach and athlete web experience
@@ -19,20 +19,33 @@ The project is split by product responsibility so each domain can evolve indepen
 
 ## Frontend/Backend Interaction
 
-The frontend calls each backend service through REST APIs. Authenticated requests include a bearer token from the auth service. The frontend should use a shared API client and typed request/response models.
+The frontend calls each backend service through REST APIs. Authenticated requests include a bearer token from Auth Service. Route guards select a coach or athlete shell from the authenticated role. Coach routes can use athlete IDs after the backend verifies ownership; athlete routes never accept an athlete ID and instead resolve the profile from the JWT user ID.
+
+The athlete dashboard is a frontend composition over dedicated athlete-safe APIs. Athlete Service returns profile, goals, assignments, progress status, and timeline data. AI Review Service returns approved feedback. A failure in the optional AI summary request does not prevent the Athlete Service dashboard from loading its owned data.
 
 ## Database Strategy
 
 PostgreSQL is the primary database. Each service should own its tables and migrations. In early local development, one PostgreSQL instance can host separate databases or schemas per service.
 
-## Authentication Flow
+## Authentication And Athlete Invitation Flow
 
-1. Coach signs up or logs in through the frontend.
-2. Frontend calls auth service.
-3. Auth service validates credentials and returns a JWT.
-4. Frontend stores the token using the selected auth strategy.
-5. Subsequent API calls include `Authorization: Bearer <token>`.
-6. Services validate JWT claims before returning protected data.
+1. A coach signs up publicly or an existing coach logs in.
+2. The coach creates an athlete profile in Athlete Service.
+3. The primary coach invites the athlete by email.
+4. Athlete Service creates an `athlete_user_links` row and calls Auth Service through an internal authenticated endpoint.
+5. Auth Service creates or reuses a pending athlete user and issues a single-use invitation token. Only the token hash is stored.
+6. The athlete opens the invitation URL, sets a password, and activates the account.
+7. Auth Service calls Athlete Service to activate the matching identity link.
+8. Coach and athlete users log in through the same endpoint. JWTs include user ID, email, role, and expiration.
+9. Each protected service validates the JWT and applies role-aware authorization.
+
+Public signup always creates a coach. Athlete accounts cannot self-register or choose an arbitrary role.
+
+## Identity Linking
+
+Auth Service owns login identities. Athlete Service owns athlete profiles and the explicit `auth_user_id -> athlete_id` mapping in `athlete_user_links`. The Auth user ID is an external identifier, not a database foreign key. Partial unique indexes allow only one invited or active link per athlete and one invited or active link per Auth user.
+
+Athlete self-service dependencies require an `athlete` JWT role, locate the active link by Auth user ID, and return `404` or authorization errors without exposing another athlete's existence.
 
 ## Video Upload Flow
 
@@ -53,6 +66,14 @@ PostgreSQL is the primary database. Each service should own its tables and migra
 6. Coach edits, approves, rejects, retries, or cancels the review. Approval is the athlete-visible timeline transition.
 7. Approved feedback becomes visible in athlete-facing workflows.
 
+## Athlete Feedback Visibility
+
+AI Review Service exposes dedicated athlete response schemas and queries only immutable approved snapshots whose visibility is `athlete_visible` and whose athlete ID matches the caller's resolved profile. Provider metadata, confidence, evidence, coach notes, rejection reasons, and raw operational fields are not serialized by athlete endpoints.
+
+## Athlete Drill Completion Flow
+
+Athletes can read only their own assignments and can start, increase progress, or complete an assignment. Athlete Service derives the athlete from the JWT, records the actor as `athlete`, stores note visibility explicitly, and appends safe timeline events in the same transaction. Athletes cannot cancel assignments; cancellation remains a coach action. Completion is idempotent and sets progress to 100.
+
 ## Deployment Overview
 
 Local development starts with Docker Compose. Production can use containerized services behind an API gateway or ingress, managed PostgreSQL, object storage, and a hosted frontend.
@@ -65,6 +86,7 @@ Local development starts with Docker Compose. Production can use containerized s
 - Redis for queues and caching
 - Centralized logging and tracing
 - Dedicated API gateway
+
 # Unified Timeline Delivery
 
 Athlete Service owns the canonical append-only timeline. Producer services commit domain state and an outbox row atomically, then separate workers deliver events over authenticated internal HTTP. Delivery is eventually consistent: domain operations never roll back because Athlete Service is unavailable. Stable producer event IDs make retries idempotent; no service writes another service's database.
@@ -72,3 +94,13 @@ Athlete Service owns the canonical append-only timeline. Producer services commi
 ## Human Approval Boundary
 
 AI output is a coach-only baseline. The AI Review Service stores append-only coach revisions and requires an explicit confirmation before it creates an immutable approved snapshot. Visibility is selected at approval and defaults to `coach_only`; workers cannot publish feedback automatically. Optimistic concurrency compares the expected revision number and returns `409` rather than overwriting a newer coach edit.
+
+## Drill And Assignment Architecture
+
+The Athlete Service owns the MVP drill library, athlete drill assignments, assignment activity, and drill timeline events. A separate Drill Service is intentionally deferred until independent scaling, ownership, or deployment requirements justify another service boundary.
+
+An AI recommendation is advisory content owned by the AI Review Service. It never becomes an assignment automatically. When a coach explicitly assigns a recommendation, Athlete Service fetches the immutable approved snapshot through the AI Review API using the coach bearer token, verifies the athlete and recommendation index, and then creates local records.
+
+Assignments always store title, description, and instruction snapshots. Later edits or archival of a library drill do not rewrite athlete history. A recommendation can be assigned without a library record, saved as a new private drill, or mapped to an accessible existing drill while retaining the approved recommendation snapshot.
+
+Assignment creation and lifecycle transitions write the assignment, activity record, and local timeline event in one Athlete Service transaction. External review retrieval happens before database writes so no transaction remains open during the HTTP call.

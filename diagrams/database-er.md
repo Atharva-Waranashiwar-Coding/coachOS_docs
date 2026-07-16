@@ -4,32 +4,37 @@
 
 ```mermaid
 erDiagram
-  USERS ||--o| COACHES : has
-  USERS ||--o| ATHLETES : may_have
-  COACHES ||--o{ COACH_ATHLETES : manages
-  ATHLETES ||--o{ COACH_ATHLETES : assigned_to
-  COACHES ||--o{ PRACTICE_SESSIONS : creates
+  USERS ||--o{ ACCOUNT_INVITATIONS : receives
+  ATHLETES ||--o{ ATHLETE_USER_LINKS : has_history
+  ATHLETES ||--o{ ATHLETE_GOALS : pursues
   ATHLETES ||--o{ PRACTICE_SESSIONS : attends
   PRACTICE_SESSIONS ||--o{ VIDEOS : contains
-  VIDEOS ||--o{ AI_REVIEWS : reviewed_by
-  AI_REVIEWS ||--o{ AI_OBSERVATIONS : includes
-  AI_REVIEWS ||--o{ COACH_REVIEWS : approved_by
+  AI_REVIEWS ||--o| REVIEW_RESULTS : generates
+  AI_REVIEWS ||--o{ REVIEW_REVISIONS : revised_as
+  AI_REVIEWS ||--o| APPROVED_REVIEW_SNAPSHOTS : approves_as
   ATHLETES ||--o{ DRILL_ASSIGNMENTS : receives
   DRILLS ||--o{ DRILL_ASSIGNMENTS : assigned_as
+  DRILL_ASSIGNMENTS ||--o{ DRILL_ASSIGNMENT_ACTIVITIES : records
   ATHLETES ||--o{ TIMELINE_EVENTS : has
 ```
 
+The diagram groups service-owned entities for domain understanding. It does not imply cross-service foreign keys. `ATHLETE_USER_LINKS.auth_user_id`, media identifiers stored by AI Review Service, and source review identifiers stored by Athlete Service are external IDs.
+
 ## Users
 
-Authentication identity for coaches and future athletes.
+Auth Service identity for coaches and invited athletes, including role and account status.
 
-## Coaches
+## Account Invitations
 
-Coach profile linked to a user account.
+Auth Service hashed, expiring, single-use athlete password setup tokens.
 
 ## Athletes
 
 Athlete profile, sport context, goals, and injury notes.
+
+## Athlete User Links
+
+Athlete Service link between a local athlete profile and an external Auth Service user ID.
 
 ## Practice Sessions
 
@@ -45,7 +50,7 @@ Structured AI-generated review details.
 
 ## Coach Reviews
 
-Coach edits, approvals, rejections, and final feedback.
+Coach revisions, approvals, rejections, immutable snapshots, and final athlete visibility.
 
 ## Drills
 
@@ -53,7 +58,7 @@ Reusable training activities.
 
 ## Assignments
 
-Drills assigned to athletes with status and due dates.
+Drills assigned to athletes with status, due dates, progress, target snapshots, and actor-aware activity.
 
 ## Timeline Events
 

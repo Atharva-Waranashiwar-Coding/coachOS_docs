@@ -38,7 +38,7 @@ Create drill library records and assign drills to athletes from coach review rec
 
 ## Stage 9: Athlete Dashboard
 
-Build athlete-facing views for feedback, assigned drills, timeline, and progress status.
+Implemented: invitation-based athlete access, role-aware frontend shells, self-service profile and dashboard APIs, approved feedback, assigned drill actions, timeline, goals, and progress status.
 
 ## Stage 10: Progress Insights
 

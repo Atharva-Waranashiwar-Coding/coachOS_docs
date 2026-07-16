@@ -7,9 +7,9 @@ CoachOS uses PostgreSQL because the domain is relational: coaches own athletes, 
 ## Core Tables
 
 - `users`
-- `coaches`
+- `account_invitations`
 - `athletes`
-- `coach_athletes`
+- `athlete_user_links`
 - `practice_sessions`
 - `videos`
 - `ai_reviews`
@@ -24,10 +24,10 @@ CoachOS uses PostgreSQL because the domain is relational: coaches own athletes, 
 
 ## Table Responsibilities
 
-- `users`: login identity, email, password hash, role
-- `coaches`: coach profile fields linked to user identity
+- `users`: login identity, email, nullable password hash for pending accounts, role, and lifecycle status
+- `account_invitations`: hashed single-use athlete setup tokens, expiration, use state, and external athlete correlation
 - `athletes`: athlete profile, sport, position, goals, injury notes
-- `coach_athletes`: relationship between coaches and athletes
+- `athlete_user_links`: Athlete Service mapping between a profile and an external Auth Service user
 - `practice_sessions`: session date, type, notes, owner
 - `videos`: storage key, upload status, metadata, linked session
 - `ai_reviews`: request inputs, safe context snapshot, provider metadata, and lifecycle status
@@ -42,9 +42,10 @@ CoachOS uses PostgreSQL because the domain is relational: coaches own athletes, 
 
 ## Relationships
 
-- A user may be a coach or athlete identity.
+- A user is a coach, athlete, or future admin Auth Service identity.
 - A coach can manage many athletes.
-- An athlete can belong to multiple coaches later, but MVP can start with one primary coach.
+- An athlete has one primary coach in the MVP.
+- An athlete profile can have one current invited or active Auth Service identity link.
 - A practice session belongs to an athlete and coach.
 - A video belongs to a practice session.
 - An AI review belongs to a video.
@@ -53,24 +54,23 @@ CoachOS uses PostgreSQL because the domain is relational: coaches own athletes, 
 
 ## Foreign Keys
 
-- `coaches.user_id -> users.id`
-- `athletes.user_id -> users.id`, nullable for athlete accounts created later
-- `coach_athletes.coach_id -> coaches.id`
-- `coach_athletes.athlete_id -> athletes.id`
-- `practice_sessions.athlete_id -> athletes.id`
-- `practice_sessions.coach_id -> coaches.id`
-- `videos.practice_session_id -> practice_sessions.id`
-- `ai_reviews.video_id -> videos.id`
-- `ai_observations.ai_review_id -> ai_reviews.id`
-- `coach_reviews.ai_review_id -> ai_reviews.id`
-- `drill_assignments.athlete_id -> athletes.id`
-- `timeline_events.athlete_id -> athletes.id`
+Foreign keys exist only inside a service-owned database:
+
+- Auth Service: `account_invitations.user_id -> users.id`
+- Athlete Service: `athlete_user_links.athlete_id -> athletes.id`
+- Athlete Service: goals, assignments, assignment activities, and timeline records reference local athlete or assignment rows
+- Media Service: videos reference local practice sessions
+- AI Review Service: review results, revisions, jobs, and approved snapshots reference local reviews
+
+Auth user IDs, source review IDs, video IDs, practice session IDs, and producer event IDs are external identifiers when stored by another service. CoachOS does not create cross-database foreign keys.
 
 ## Indexes
 
 - Unique index on `users.email`
+- Unique index on `account_invitations.token_hash`
+- Indexes on invitation user and expiration
 - Index on `athletes.primary_coach_id`
-- Index on `coach_athletes.coach_id, athlete_id`
+- Partial unique indexes on current `athlete_user_links.athlete_id` and `athlete_user_links.auth_user_id`
 - Index on `practice_sessions.athlete_id, created_at`
 - Index on `videos.practice_session_id`
 - Index on `ai_reviews.video_id`
@@ -83,6 +83,19 @@ Each service owns its Alembic migrations. Migrations should be forward-only duri
 ## Future Scaling Notes
 
 Start with one PostgreSQL instance. Split into separate databases per service when operational complexity is justified. Use object storage for video files and keep only metadata in PostgreSQL.
+
+## Athlete Account Tables
+
+`users.status` uses `pending`, `active`, and `disabled`. A pending athlete account may have no password hash until invitation acceptance. Public coach signup creates an active account. Invitation acceptance hashes the submitted password, marks the token used, activates the user, and activates the Athlete Service identity link.
+
+`account_invitations.token_hash` stores a SHA-256 digest of the opaque token. Raw invitation tokens exist only in the outbound invitation URL. Resending invalidates prior unused tokens and rate limits repeated issuance.
+
+`athlete_user_links` stores `athlete_id`, external `auth_user_id`, invitation email, status, inviter, and lifecycle timestamps. The active/invited partial unique indexes prevent one identity from controlling multiple current athlete profiles and prevent multiple current identities for one athlete.
+
+## Athlete Assignment Activity
+
+`drill_assignment_activities.actor_type` records `coach` or `athlete`. `note_visibility` records `coach_only` or `athlete_visible`. Optional actual sets, repetitions, and duration capture completion details without changing the assignment's original target snapshot.
+
 # Timeline And Outbox
 
 `timeline_events` stores canonical events ordered by `occurred_at`, `created_at`, and ID. A partial unique index on non-null `external_event_id` enforces producer idempotency. Category, visibility, source, entity, and athlete/time indexes support coach queries. Producer `outbox_events` tables index status/availability, creation time, and aggregate identity and retain bounded retry state without cross-service foreign keys.
@@ -93,3 +106,13 @@ Start with one PostgreSQL instance. Split into separate databases per service wh
 - `approved_review_snapshots` stores one immutable, athlete-safe content copy per review.
 - `review_rejections` stores a coach-only structured category and private reason.
 - `review_audit_events` stores safe actor/action metadata and never full review text or coach notes.
+
+## Drill Tables
+
+`drills` stores private coach-owned reusable definitions with category, difficulty, JSONB equipment and tags, optional target defaults, visibility, and soft-archive state. Owner, category, difficulty, status, lower-title, and GIN tag indexes support library access and filtering.
+
+`drill_assignments` belongs to an athlete and optionally references a library drill and approved AI review recommendation. Required title and instruction snapshots remain immutable relative to their source. Constraints enforce priority `1..5`, progress `0..100`, paired review ID/index, non-negative recommendation index, positive targets, valid dates, and terminal completed/cancelled state.
+
+`drill_assignment_activities` records assigned, started, updated, progress-updated, completed, and cancelled actions. It is assignment-specific audit history; the athlete timeline receives only safe summaries.
+
+Foreign keys stay inside Athlete Service: assignments reference `athletes` and optional `drills`; activities reference assignments. `source_review_id` and Auth Service user IDs are external identifiers, not cross-database foreign keys.

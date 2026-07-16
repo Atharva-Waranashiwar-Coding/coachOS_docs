@@ -4,7 +4,7 @@ Project documentation for CoachOS, a coaching platform for managing athletes, vi
 
 ## MVP Goal
 
-Build a working coach dashboard where a coach can sign in, manage athletes, upload practice video, generate AI review notes, approve or edit feedback, and assign drills.
+Build connected coach and athlete workspaces where coaches manage athletes, video review, approved feedback, and drill assignments, while invited athletes track goals, feedback, assignments, timeline, and progress.
 
 ## Repository Links
 
@@ -47,4 +47,4 @@ Use `prd.md` to understand product scope, `architecture.md` to understand system
 
 ## Current Build Stage
 
-Stage 6: AI review generation is implemented as an asynchronous, coach-controlled workflow with persisted jobs, structured drafts, revisions, and timeline outbox delivery.
+Stage 9: athlete invitations, role-aware authentication, identity-safe self-service APIs, approved feedback, drill progress, timeline, goals, profile, and the responsive athlete dashboard are implemented.

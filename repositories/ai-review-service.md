@@ -2,7 +2,7 @@
 
 ## Responsibility
 
-The AI Review Service owns asynchronous coaching review requests, sanitized context snapshots, structured provider output, coach revisions, lifecycle state, and timeline outbox events. Athlete profile, practice session, and video records remain owned by their source services.
+The AI Review Service owns asynchronous coaching review requests, sanitized context snapshots, structured provider output, coach revisions, immutable approved snapshots, athlete-safe feedback reads, lifecycle state, and timeline outbox events. Athlete profile, practice session, and video records remain owned by their source services.
 
 ## Generation Flow
 
@@ -26,6 +26,8 @@ Raw video, storage URLs, provider prompts, raw provider output, and credentials 
 - `GET /api/v1/reviews/{id}`, `/api/v1/reviews/{id}/status`
 - `PATCH /api/v1/reviews/{id}/draft`
 - `POST /api/v1/reviews/{id}/approve`, `/reject`, `/retry`, `/cancel`
+- `GET /api/v1/athlete/reviews`
+- `GET /api/v1/athlete/reviews/{review_id}`
 
 ## Tables Owned
 
@@ -53,6 +55,9 @@ python -m app.workers.outbox_publisher
 - Structured provider parsing and prompt safety
 - Job retries, cancellation, and failure event creation
 - Outbox visibility and idempotent timeline delivery
+- Athlete identity resolution through Athlete Service
+- Approved and athlete-visible filtering
+- Cross-athlete isolation and athlete-safe response serialization
 
 ## Future Improvements
 
@@ -64,3 +69,15 @@ python -m app.workers.outbox_publisher
 ## Coach Review Workflow
 
 Generated results are coach-only. Coach revisions use expected revision numbers and are immutable. Approval stores one immutable snapshot with a selected visibility and excludes coach notes; rejection stores a private category/reason. The service records safe audit events for generation, revision, preview, approval, and rejection. The approval/rejection transactions also write their timeline outbox rows.
+
+## Approved Recommendation Contract
+
+`GET /api/v1/reviews/{review_id}/approved` returns the immutable snapshot plus `review_id`, `athlete_id`, `status: approved`, visibility, approval time, and structured recommended drills. Each recommendation includes name, description, reason, optional frequency, difficulty, and optional safety note.
+
+The endpoint remains coach-authenticated and ownership-aware. Athlete Service consumes it through HTTP with the current coach JWT; it never reads the AI Review database. Recommendations remain advisory until a coach explicitly submits an Athlete Service assignment request.
+
+## Athlete Feedback Contract
+
+Athlete endpoints resolve the current athlete by forwarding the athlete JWT to Athlete Service. Queries require the exact athlete ID, review status `approved`, an immutable approved snapshot, and visibility `athlete_visible`.
+
+Dedicated athlete schemas return summary, observations, strengths, improvement areas, recommended drills, an optional athlete message, approval time, and allowlisted session context. They exclude confidence, evidence, provider metadata, prompts, raw output, private coach notes, rejection reasons, and audit details.
