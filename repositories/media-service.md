@@ -61,3 +61,9 @@ Practice sessions group videos and notes by athlete, coach, date, and session ty
 # Timeline Outbox
 
 Practice lifecycle, first verified upload completion, and video deletion insert timeline payloads in the same transaction as domain state. `python -m app.workers.outbox_publisher` delivers them. `python -m app.workers.outbox_admin inspect` reports queue state and `retry-failed` safely requeues failed rows.
+
+## Progress Activity Contract
+
+`GET /api/v1/insights/athletes/{athlete_id}/activity` serves a coach-authorized athlete summary. `POST /api/v1/insights/athletes/activity-summary` serves bounded internal Athlete Service batches.
+
+For current and comparison half-open UTC ranges, the service groups practice sessions created, sessions completed, uploaded non-deleted videos, and latest session activity by athlete. Responses never include storage keys, object-store configuration, signed URLs, bucket names, or deleted-video details. `INSIGHT_MAX_BATCH_ATHLETES` bounds batch size.

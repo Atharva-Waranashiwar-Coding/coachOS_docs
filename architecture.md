@@ -83,7 +83,7 @@ Local development starts with Docker Compose. Production can use containerized s
 - Service-to-service auth
 - Event-driven review generation
 - Background workers for long-running video analysis
-- Redis for queues and caching
+- Measured caching for expensive read paths
 - Centralized logging and tracing
 - Dedicated API gateway
 
@@ -104,3 +104,19 @@ An AI recommendation is advisory content owned by the AI Review Service. It neve
 Assignments always store title, description, and instruction snapshots. Later edits or archival of a library drill do not rewrite athlete history. A recommendation can be assigned without a library record, saved as a new private drill, or mapped to an accessible existing drill while retaining the approved recommendation snapshot.
 
 Assignment creation and lifecycle transitions write the assignment, activity record, and local timeline event in one Athlete Service transaction. External review retrieval happens before database writes so no transaction remains open during the HTTP call.
+
+## Progress Insight Aggregation
+
+Athlete Service owns MVP progress aggregation because it already owns coach-athlete authorization, drills, goals, and the canonical timeline. It calculates local metrics from grouped repository queries and requests bounded summaries from AI Review and Media through authenticated service APIs. No service reads another service's database.
+
+The coach request flow is:
+
+1. Athlete Service verifies coach access and resolves a start-inclusive, end-exclusive UTC period.
+2. Local drill, goal, activity, and timeline records are loaded in grouped queries.
+3. Athlete Service sends one or more bounded batch requests to AI Review and Media, never one request per athlete.
+4. Domain-specific services calculate explicit metrics, comparisons, recurring labels, and rule-based attention flags.
+5. The API returns local results even when an upstream service fails, with availability booleans and safe warning codes.
+
+Trends are deterministic rate comparisons. AI is not used to assign direction, rank athletes, predict future performance, or produce a hidden score. Recurring feedback describes how often a structured area appears in approved reviews; it does not claim proven improvement or decline.
+
+The MVP calculates insights on request and relies on database indexes plus the frontend's short TanStack Query cache. There is no Analytics Service, Redis cache, warehouse, or snapshot table. Extraction should be considered only after measured latency, query volume, independent ownership, or historical reporting needs exceed this design. A future extracted service must continue consuming source-service APIs or events rather than cross-database joins.

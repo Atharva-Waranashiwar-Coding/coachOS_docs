@@ -81,3 +81,11 @@ The endpoint remains coach-authenticated and ownership-aware. Athlete Service co
 Athlete endpoints resolve the current athlete by forwarding the athlete JWT to Athlete Service. Queries require the exact athlete ID, review status `approved`, an immutable approved snapshot, and visibility `athlete_visible`.
 
 Dedicated athlete schemas return summary, observations, strengths, improvement areas, recommended drills, an optional athlete message, approval time, and allowlisted session context. They exclude confidence, evidence, provider metadata, prompts, raw output, private coach notes, rejection reasons, and audit details.
+
+## Progress Insight Contract
+
+The service exposes an approved-review insight endpoint for one athlete and a bounded internal batch endpoint for Athlete Service. Queries include only immutable approved snapshots inside the requested half-open UTC period.
+
+Strength and improvement-area schemas support nullable `taxonomy_code`. Insight responses include structured titles, descriptions, priorities, taxonomy codes, visibility, approval timestamps, review type, recommendations, and source session/video IDs. They exclude coach notes, generated and rejected reviews, prompts, provider metadata, token usage, confidence/evidence internals, raw model output, and revision history.
+
+Batch requests require Athlete Service internal authentication and reject lists larger than `INSIGHT_MAX_BATCH_ATHLETES`. Coach-authorized single-athlete reads verify access through Athlete Service.

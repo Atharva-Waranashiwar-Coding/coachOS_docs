@@ -97,3 +97,11 @@ The athlete shell is responsive and distinct from the coach workspace. Routes in
 The dashboard shows profile context, active goals, assignment counts, recent progress, and approved feedback without inventing an AI performance score. Drill detail supports start, progress, and completion but no cancellation. Feedback pages display only immutable approved content returned by athlete-specific backend schemas.
 
 Athlete video playback is intentionally absent because Media Service does not yet expose an athlete-visible authorization contract.
+
+## Coach Progress Insights UI
+
+Coach routes are `/insights`, `/athletes/:athleteId/insights`, and `/insights/attention`. The coach navigation includes Insights, and athlete profiles link directly to their insight page.
+
+Range, comparison, custom dates, attention filters, sorting, search, and pagination live in URL search parameters. TanStack Query caches reads for three minutes, retains previous data during refetches, and insight keys are invalidated after drill, goal, and review mutations.
+
+The UI uses accessible value-labelled bars instead of adding a chart dependency. Metric cards expose calculation help, comparisons, null states, and source-record links. Partial upstream responses show a restrained warning while preserving local metrics. Tests cover recurring labels, privacy exclusions, partial data, range requests, coach summaries, attention filtering, sorting, pagination, and athlete navigation.

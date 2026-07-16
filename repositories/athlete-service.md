@@ -102,3 +102,15 @@ The dashboard aggregates Athlete Service-owned profile, active goals, drill stat
 ## Athlete Drill Activity
 
 Assignment activity records identify the actor as `coach` or `athlete` and store note visibility explicitly. Athlete start, progress, and completion actions write activity and timeline state in one transaction. Completion is idempotent and records optional actual sets, repetitions, and duration.
+
+## Progress Insights
+
+Athlete Service owns `/api/v1/athletes/{athlete_id}/insights`, `/api/v1/coach/insights`, and `/api/v1/coach/insights/athletes-needing-attention`. Thin endpoints resolve the period and authorization; separate services calculate activity, drills, goals, review recurrence, trends, and attention flags.
+
+Drill completion rate is completed non-cancelled assignments divided by non-cancelled assignments created before period end. Goal completion rate uses the same lifetime-style denominator for goals. On-time rate includes completed assignments with due dates. Empty denominators return `null`.
+
+Attention rules cover overdue drills, high active-assignment load, limited recent activity, repeated high-priority approved feedback, goals due soon or overdue, and recent practice without recent approved feedback. Rules depending on unavailable upstream data are suppressed.
+
+`InsightQueries` loads local data in grouped queries. Review and Media clients chunk athlete IDs to `INSIGHT_MAX_BATCH_ATHLETES`, use bounded timeouts, and convert failures into partial responses. The alias configuration is versioned at `app/core/insight_aliases.v1.json`.
+
+Tests cover date boundaries, custom range limits, drill and goal formulas, taxonomy/alias normalization, distinct-review recurrence, and partial upstream behavior. Future work should begin with query timing and explain plans before adding caching or snapshots.

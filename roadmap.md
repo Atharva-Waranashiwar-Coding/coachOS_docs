@@ -42,7 +42,7 @@ Implemented: invitation-based athlete access, role-aware frontend shells, self-s
 
 ## Stage 10: Progress Insights
 
-Add trend summaries, completion metrics, recurring improvement areas, and coach-facing insights.
+Implemented: Athlete Service owns on-request coach insight aggregation; AI Review and Media expose bounded safe batch contracts; the frontend provides coach overview, athlete insights, and attention queue routes with URL-based ranges and filters.
 
 ## Stage 11: Deployment
 

@@ -109,6 +109,8 @@ Coach invitation endpoints require primary-coach access. Athlete self endpoints 
 - `GET /videos/{video_id}`
 - `GET /athletes/{athlete_id}/videos`
 - `POST /practice-sessions`
+- `GET /api/v1/insights/athletes/{athlete_id}/activity`
+- `POST /api/v1/insights/athletes/activity-summary`
 
 ### AI Review Service
 
@@ -119,6 +121,8 @@ Coach invitation endpoints require primary-coach access. Athlete self endpoints 
 - `POST /api/v1/reviews/{review_id}/approve`, `/reject`, `/retry`, and `/cancel` enforce lifecycle transitions.
 - `GET /api/v1/athlete/reviews` lists immutable approved athlete-visible feedback for the authenticated athlete.
 - `GET /api/v1/athlete/reviews/{review_id}` returns a dedicated athlete-safe detail contract.
+- `GET /api/v1/insights/athletes/{athlete_id}/approved-reviews` returns bounded approved-only structured insight data.
+- `POST /api/v1/insights/athletes/approved-review-summary` accepts a bounded athlete ID batch from authenticated Athlete Service.
 
 Review requests include athlete, session, uploaded-video IDs, a review type, and bounded textual context. Structured results contain summary, observations, strengths, improvement areas, recommended drills, and limitations. API responses never include raw provider output, credentials, passwords, or storage URLs.
 
@@ -209,3 +213,39 @@ Athlete assignments:
 Creation uses a discriminated `mode`: `library`, `review`, or `custom`. Review mode accepts only source IDs, an optional existing-drill mapping, assignment overrides, and `save_to_library`; the backend re-fetches approved recommendation content and ignores frontend-supplied recommendation text.
 
 Coach transitions are `assigned -> in_progress|completed|cancelled` and `in_progress -> completed|cancelled`. Athlete transitions are limited to start, monotonic progress updates, and completion. Completed and cancelled assignments are terminal. Validation failures use the standard `422` envelope; inaccessible athletes, drills, reviews, and assignments return `404`.
+
+## Progress Insight API
+
+Coach endpoints:
+
+- `GET /api/v1/athletes/{athlete_id}/insights`
+- `GET /api/v1/coach/insights`
+- `GET /api/v1/coach/insights/athletes-needing-attention`
+
+All require a coach JWT. Athlete-specific access is hidden as `404` when the coach cannot access the athlete.
+
+Shared query parameters:
+
+- `range=7d|30d|60d|90d|custom`, default `30d`
+- `start_date` and `end_date`, required only for `custom`
+- `compare=true|false`, default `true`
+- `timezone`, an IANA timezone used to resolve day boundaries
+
+Periods are start-inclusive and end-exclusive in UTC. The comparison period has the same duration and ends at the current start. Custom ranges are capped at the configured maximum, currently 365 days. The athlete endpoint also accepts `sections=activity,drills,goals,reviews,attention`.
+
+The attention endpoint supports `severity`, `flag_code`, `primary_position`, `search`, `sort_by`, `page`, and `page_size`. Sort options are `highest_severity`, `overdue_count`, `last_activity`, and `name`.
+
+Every combined response includes:
+
+```json
+{
+  "review_data_available": true,
+  "media_data_available": false,
+  "partial": true,
+  "warnings": ["media_data_unavailable"]
+}
+```
+
+Upstream timeouts never expose exception text and do not fail local drill or goal metrics. Unavailable ratios and unavailable upstream counts are `null`, not zero.
+
+Internal batch calls use `X-Service-Name` and `X-Service-Token`, enforce a configurable maximum athlete count, and accept current and comparison UTC boundaries. Review responses contain only approved snapshot IDs, type, approval time, visibility, safe structured strengths/improvement areas/recommendations, and source session/video IDs. Media responses contain only session and upload counts plus latest activity; they exclude storage keys, signed URLs, buckets, and deleted-video details.

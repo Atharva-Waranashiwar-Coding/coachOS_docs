@@ -47,4 +47,4 @@ Use `prd.md` to understand product scope, `architecture.md` to understand system
 
 ## Current Build Stage
 
-Stage 9: athlete invitations, role-aware authentication, identity-safe self-service APIs, approved feedback, drill progress, timeline, goals, profile, and the responsive athlete dashboard are implemented.
+Stage 10: coach-facing progress insights are implemented with deterministic drill and goal metrics, approved-review normalization, activity summaries, attention flags, date comparisons, partial upstream responses, and coach-wide attention workflows.

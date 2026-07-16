@@ -75,6 +75,9 @@ Auth user IDs, source review IDs, video IDs, practice session IDs, and producer 
 - Index on `videos.practice_session_id`
 - Index on `ai_reviews.video_id`
 - Index on `timeline_events.athlete_id, created_at`
+- Composite insight indexes on drill assignment athlete/due/status and athlete/completion time
+- Composite insight indexes on goal athlete/target/status and athlete/completion time
+- Composite insight index on timeline athlete/visibility/occurrence time
 
 ## Migration Strategy
 
@@ -116,3 +119,19 @@ Start with one PostgreSQL instance. Split into separate databases per service wh
 `drill_assignment_activities` records assigned, started, updated, progress-updated, completed, and cancelled actions. It is assignment-specific audit history; the athlete timeline receives only safe summaries.
 
 Foreign keys stay inside Athlete Service: assignments reference `athletes` and optional `drills`; activities reference assignments. `source_review_id` and Auth Service user IDs are external identifiers, not cross-database foreign keys.
+
+## Progress Insight Storage
+
+Stage 10 adds no analytics snapshot tables. Athlete Service calculates progress insights from authoritative assignment, activity, goal, and timeline records. AI Review and Media remain authoritative for approved feedback and practice/video activity.
+
+Optional `taxonomy_code` fields live inside structured strength and improvement-area payloads. Historical approved snapshots may omit them. Athlete Service normalizes recurring labels with taxonomy codes first, a versioned alias file second, and a conservative normalized title fallback.
+
+The Stage 10 Athlete Service migration adds only missing composite indexes:
+
+- `drill_assignments (athlete_id, due_date, status)`
+- `drill_assignments (athlete_id, completed_at)`
+- `athlete_goals (athlete_id, target_date, status)`
+- `athlete_goals (athlete_id, completed_at)`
+- `timeline_events (athlete_id, visibility, occurred_at)`
+
+Materialized views, snapshots, and a separate analytics database are deferred until production measurements justify their consistency and operational cost.

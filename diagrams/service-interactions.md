@@ -332,3 +332,41 @@ sequenceDiagram
   W->>O: Increment attempt and schedule backoff
   W->>A: Retry same event_id
 ```
+
+## Athlete Progress Insight Request
+
+```mermaid
+sequenceDiagram
+  participant UI as Coach Frontend
+  participant Athlete as Athlete Service
+  participant AI as AI Review Service
+  participant Media as Media Service
+  participant DB as Athlete DB
+  UI->>Athlete: GET athlete insights with range and compare
+  Athlete->>Athlete: Verify coach-athlete access and UTC boundaries
+  Athlete->>DB: Load grouped drills, goals, activities, timeline
+  par Safe upstream summaries
+    Athlete->>AI: Approved review insight request
+    Athlete->>Media: Practice and upload activity request
+  end
+  Athlete->>Athlete: Calculate metrics, trends, recurrence, flags
+  Athlete-->>UI: Combined response with completeness
+```
+
+## Coach-Wide Progress Insight Request
+
+```mermaid
+sequenceDiagram
+  participant UI as Coach Frontend
+  participant Athlete as Athlete Service
+  participant AI as AI Review Service
+  participant Media as Media Service
+  UI->>Athlete: GET coach insights
+  Athlete->>Athlete: Resolve current coach athlete IDs
+  Athlete->>AI: POST bounded approved-review batch
+  Athlete->>Media: POST bounded activity batch
+  Athlete->>Athlete: Aggregate without ranking or scoring
+  Athlete-->>UI: Overview and attention preview
+```
+
+If AI Review or Media times out, Athlete Service keeps local drill and goal results, suppresses dependent flags, and returns `partial: true` with a safe warning code. It does not expose raw exceptions or retry one request per athlete.

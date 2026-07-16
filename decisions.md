@@ -78,3 +78,14 @@ Athletes may start assignments, increase progress, and complete them. They may n
 - Assignments snapshot source content so library edits cannot rewrite athlete history.
 - Archived drills remain referenced by existing assignments and cannot be selected for new assignments.
 - Approved recommendation text is retrieved server-to-server and never trusted from the frontend.
+
+## Progress Insight Decisions
+
+- Athlete Service owns MVP insight aggregation because it owns authorization and most source records.
+- CoachOS does not create an opaque performance score, athlete ranking, prediction, or automated coaching decision.
+- Rate trends use configured sample-size and percentage-point thresholds; AI does not choose trend direction.
+- Recurring feedback normalization prefers taxonomy codes, then a versioned alias map, then conservative title normalization.
+- Insights are calculated on request. No analytics snapshot table, Redis cache, warehouse, or Analytics Service is added for Stage 10.
+- AI Review and Media expose bounded internal batch contracts; Athlete Service never performs one upstream request per athlete.
+- Local metrics remain available when an upstream service fails. Responses mark partial data with safe warning codes.
+- Extraction or caching requires measured latency, volume, reporting, or ownership pressure rather than speculative architecture.
