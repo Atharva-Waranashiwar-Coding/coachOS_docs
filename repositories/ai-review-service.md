@@ -60,3 +60,7 @@ python -m app.workers.outbox_publisher
 - Provider routing, cost accounting, and tracing
 - Provider-neutral vision pipeline with explicit consent and media policy
 - Coach revision editor and drill-assignment handoff
+
+## Coach Review Workflow
+
+Generated results are coach-only. Coach revisions use expected revision numbers and are immutable. Approval stores one immutable snapshot with a selected visibility and excludes coach notes; rejection stores a private category/reason. The service records safe audit events for generation, revision, preview, approval, and rejection. The approval/rejection transactions also write their timeline outbox rows.

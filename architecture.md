@@ -68,3 +68,7 @@ Local development starts with Docker Compose. Production can use containerized s
 # Unified Timeline Delivery
 
 Athlete Service owns the canonical append-only timeline. Producer services commit domain state and an outbox row atomically, then separate workers deliver events over authenticated internal HTTP. Delivery is eventually consistent: domain operations never roll back because Athlete Service is unavailable. Stable producer event IDs make retries idempotent; no service writes another service's database.
+
+## Human Approval Boundary
+
+AI output is a coach-only baseline. The AI Review Service stores append-only coach revisions and requires an explicit confirmation before it creates an immutable approved snapshot. Visibility is selected at approval and defaults to `coach_only`; workers cannot publish feedback automatically. Optimistic concurrency compares the expected revision number and returns `409` rather than overwriting a newer coach edit.

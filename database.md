@@ -86,3 +86,10 @@ Start with one PostgreSQL instance. Split into separate databases per service wh
 # Timeline And Outbox
 
 `timeline_events` stores canonical events ordered by `occurred_at`, `created_at`, and ID. A partial unique index on non-null `external_event_id` enforces producer idempotency. Category, visibility, source, entity, and athlete/time indexes support coach queries. Producer `outbox_events` tables index status/availability, creation time, and aggregate identity and retain bounded retry state without cross-service foreign keys.
+
+## Coach Review Workflow Tables
+
+- `review_revisions` stores immutable coach changes; `ai_reviews.latest_revision_number` is the optimistic concurrency token.
+- `approved_review_snapshots` stores one immutable, athlete-safe content copy per review.
+- `review_rejections` stores a coach-only structured category and private reason.
+- `review_audit_events` stores safe actor/action metadata and never full review text or coach notes.

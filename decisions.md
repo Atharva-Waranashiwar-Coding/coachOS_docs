@@ -34,3 +34,10 @@ The MVP uses an external AI API for review generation. Custom ML can be explored
 - Producers generate stable idempotency UUIDs once at outbox creation.
 - User chronology uses domain `occurred_at`, not ingestion time.
 - `coach_only` and `athlete_visible` are explicit data policy, not frontend-only decoration.
+
+## Coach Review Decisions
+
+- Coach approval is mandatory before any athlete-visible feedback exists.
+- Approval creates an immutable snapshot; revisions are append-only and never overwritten.
+- `coach_only` is the approval default. Coach notes and rejection reasons never enter athlete previews or timeline metadata.
+- CoachOS uses optimistic concurrency and does not automatically merge simultaneous edits.

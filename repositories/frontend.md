@@ -67,3 +67,7 @@ Use consistent forms, tables, status badges, timeline items, upload states, and 
 - Offline-friendly drill tracking
 - Rich video annotation UI
 - Role-based navigation
+
+## Coach Review UI
+
+The frontend labels original AI output, active coach draft, and approved snapshot separately. The structured editor supports additions, removals, and keyboard-accessible reordering. Preview hides private coach notes. Approval and rejection require explicit confirmation; stale saves ask the coach to reload instead of overwriting work.

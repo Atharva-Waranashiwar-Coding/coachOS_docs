@@ -127,3 +127,11 @@ Login response:
 # Internal Timeline Ingestion
 
 `POST /internal/v1/athletes/{athlete_id}/timeline-events` requires `X-Service-Name` and `X-Service-Token`. The body carries a producer UUID `event_id`, category, visibility, actor, occurrence time, source identity, safe metadata, and `schema_version: 1`. First ingestion returns `201`; an identical retry returns `200`; reuse with changed content returns `409`. Public coach queries support category, type, source, visibility, and date filters.
+
+## Coach Review API
+
+- `POST /api/v1/reviews/{id}/revisions` accepts `expected_revision_number`; stale edits return `409 STALE_REVIEW_REVISION`.
+- `POST /api/v1/reviews/{id}/preview` excludes private coach notes, provider data, raw evidence, and operational limits.
+- `POST /api/v1/reviews/{id}/approve` requires `confirmation: true`, visibility, and expected revision number, then creates an immutable snapshot.
+- `POST /api/v1/reviews/{id}/reject` requires category, confirmation, and expected revision number. Free-text rejection reasons remain private.
+- `GET /api/v1/reviews/{id}/approved` and `/audit-log` are coach-only in this stage.

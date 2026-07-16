@@ -13,6 +13,23 @@ sequenceDiagram
   Auth-->>UI: JWT and user profile
 ```
 
+## Revision And Approval Flow
+
+```mermaid
+sequenceDiagram
+  participant UI as Coach UI
+  participant AI as AI Review Service
+  participant O as Outbox
+  participant T as Athlete Timeline
+  UI->>AI: POST revision (expected revision number)
+  AI-->>UI: 201 revision or 409 stale revision
+  UI->>AI: POST preview
+  AI-->>UI: Athlete-safe content only
+  UI->>AI: POST approve (visibility, confirmation)
+  AI->>O: Commit immutable snapshot and approval event
+  O->>T: Deliver safe timeline event
+```
+
 ## Athlete Creation Flow
 
 ```mermaid
